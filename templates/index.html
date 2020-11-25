@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store"/>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <script src="https://kit.fontawesome.com/406fe76956.js" crossorigin="anonymous"></script>
+    <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"
+            integrity="sha384-DfXdz2htPH0lsSSs5nCTpuj/zy4C+OGpamoFVy38MVBnE+IbbVYUew+OrCXaRkfj"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"
+            integrity="sha384-9/reFTGAW83EW2RDu2S0VKaIzap3H66lZH81PoYlFhbGU+6BZp6G7niu735Sk7lN"
+            crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/js/bootstrap.min.js"
+            integrity="sha384-w1Q4orYjBQndcko6MimVbzY0tgp4pWB4lZ7lr30WKz0vr/aWKhXdBNmNb5D92v7s"
+            crossorigin="anonymous"></script>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+    <title>Printer</title>
+
+</head>
+
+
+<body>
+<div id="mainPage" style="display: block">
+    <div id="myModal" class="modal container-fluid" role="dialog">
+        <div class="modal-dialog">
+            <!-- Modal content -->
+            <div class="modal-content">
+                <div class="modal-header bg-warning">
+                    <h2 class="fas fa-power-off">Power</h2>
+                    <span class="close">&times;</span>
+
+                </div>
+                <div class="row modal-body text-center">
+                    <div class="col-md-6">
+                        <button
+                                id="shutdownButton" class="p-3  btn btn-sm btn-danger btn-block fas fa-power-off fa-3x">
+                            <h3>Shutdown</h3></button>
+                    </div>
+                    <div class="col-md-6">
+                        <button id="rebootButton" class="reboot p-3 btn btn-sm btn-primary btn-block fas fa-undo fa-3x">
+                            <h3>
+                                Reboot</h3></button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="container-fluid p-3 bg-primary text-white">
+        <span class="fas fa-cubes fa-3x pull-left"></span>
+        <span id="myBtn" class="fas fa-power-off fa-2x float-right"></span>
+
+    </div>
+
+    <div class="container row p-3  ">
+        <div class="col-md-8">
+            <select id="fileSelect" class="form-control input-*-*" size="8" required></select>
+        </div>
+        <div class="col-md-4">
+            <div class="row text-center">
+                <button id="deleteButton" type="submit" disabled="true"
+                        class="col-md-6 m-2 p-2 btn btn-sm btn-danger">
+                    <i class="far fa-trash-alt fa-2x">
+                        <div>Delete</div>
+                    </i>
+                </button>
+                <button id="startButton" type="submit" disabled="true"
+                        class="col-md-6 m-2 p-2 btn btn-sm btn-success">
+                    <i class="fas fa-running fa-2x">
+                        <div>Print</div>
+                    </i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+
+    <div class="container-fluid">
+
+        <form action="upload_file" method="POST" enctype="multipart/form-data">
+
+            <div class="form-group">
+                <label>Select file</label>
+                <div class="custom-file">
+                    <input type="file" class="custom-file-input" name="file" id="file" accept="application/zip">
+                    <label class="custom-file-label" for="file" id="uploadLabel">Select file...</label>
+                </div>
+            </div>
+
+            <button id="submit" type="submit" class="btn btn-primary" disabled="true">Upload</button>
+
+        </form>
+
+    </div>
+</div>
+
+
+<div id="printPage" style="display:none">
+    <div class="container-fluid p-3 bg-primary text-white">
+        <span class="fas fa-cubes fa-3x pull-left"></span>
+
+    </div>
+    <div class="container-fluid p-3">
+        <div class="row">
+            <div class="img col-sm-8 text-center " >
+                <img id="image" class="img-fluid img-responsive" src=""
+                     style="max-width: 100%; height: auto; ">
+            </div>
+            <div class="col-sm-4 text-center">
+                <button id="pauseButton" type="button" class="col-md-6 mt-2 p-2 btn btn-sm btn-warning">
+                    <i id=pauseImg class="fas fa-pause fa-2x " >
+                        <div id="pauseText">Pause</div>
+                    </i>
+                </button>
+                <button id="stopButton" type="button" class="col-md-6 mt-2 p-2 btn btn-sm btn-danger">
+                    <i class="fas fa-stop fa-2x">
+                        <div>Stop</div>
+                    </i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="col-sm-8 text-center">
+        <div class="progress ">
+            <div id="progressbar" class="progress-bar progress-bar-striped active" role="progressbar"
+                 aria-valuenow="0%"
+                 aria-valuemin="0" aria-valuemax="100" style="width:0%">
+
+            </div>
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+
+<script type="text/javascript">
+    var printing = false
+    getList()
+    setInterval(getStatus, 1000)
+
+    function getStatus() {
+        $.getJSON('/getStatus', function (data) {
+            console.log(data)
+            $('#progressbar').width(data['percentage'] + '%')
+            $('#progressbar').html(data['percentage'] + '%')
+            //$('#image').attr('src', data['img'])
+            if (data['printing'] === true) {
+                switchPage('print')
+            } else if (data['printing'] === false) {
+                switchPage('main')
+            }
+            if (data['image'] !== "") {
+                $('#image').attr('src', data['image'])
+            }
+        })
+    }
+
+    //fill up file list
+    function getList() {
+        $.get('/getList',
+            function (data) {
+                $("#fileSelect").empty()
+                $.each(data, function (i, val) {
+                    $("#fileSelect").append(new Option(val, val));
+                });
+
+            })
+    }
+
+    //enable start & delete buttons
+    $(document).ready(function () {
+        $('#fileSelect').val("0");
+
+        $('#fileSelect').change(function () {
+            selectVal = $('#fileSelect').val();
+
+            if (selectVal == 0) {
+                $('#startButton').prop("disabled", true);
+                $('#deleteButton').prop("disabled", true);
+            } else {
+                $('#startButton').prop("disabled", false);
+                $('#deleteButton').prop("disabled", false);
+            }
+        })
+    });
+
+    //post selected file & switch page
+    $('#startButton').click(function () {
+        $.post('/postSelected', {"selected": $('#fileSelect').val()},
+            function (response) {
+                console.log(response)
+            })
+    })
+
+    $('#deleteButton').click(function () {
+        $.post('/postDelete', {"selected": $('#fileSelect').val()},
+            function (response) {
+                console.log(response)
+                getList()
+            })
+    })
+
+
+    // switch page
+    function switchPage(page) {
+        let mainP = document.getElementById("mainPage")
+        let printP = document.getElementById('printPage')
+        if (page === 'print') {
+            mainP.style.display = "none";
+            printP.style.display = "block";
+        } else {
+            mainP.style.display = "block";
+            printP.style.display = "none";
+        }
+    }
+
+    //pause button
+    $('#pauseButton').click(function () {
+        $.post('/postControl', {'control': 'pause'},
+            function (response) {
+                if (response['response'] === 'paused') {
+                    $('#pauseButton').removeClass('btn-warning').addClass('btn-success')
+                    $('#pauseImg').removeClass('fa-stop').addClass('fa-running')
+                    $('#pauseText').text('Continue')
+                } else if (response['response'] === 'continued') {
+                    $('#pauseButton').removeClass('btn-success').addClass('btn-warning')
+                    $('#pauseImg').removeClass('fa-running').addClass('fa-stop')
+                    $('#pauseText').text('Pause')
+                }
+            })
+    })
+
+    //stop button
+    $('#stopButton').click(function () {
+        $.post('/postControl', {'control': 'stop'},
+            function (response) {
+                console.log(response['response'])
+            })
+    })
+
+    //shutdown button
+    $('#shutdownButton').click(function () {
+        $.post('/postPower', {'power': 'shutdown'})
+    })
+
+    //reboot button
+    $('#rebootButton').click(function () {
+        $.post('/postPower', {'power': 'reboot'})
+    })
+
+    let uploadField = document.getElementById('file')
+    let uploadBtn = document.getElementById('submit')
+    let uploadLbl = document.getElementById('uploadLabel')
+    uploadField.onchange = function () {
+        uploadLbl.innerText = uploadField.value;
+        uploadBtn.disabled = !uploadField.value;
+    }
+
+    //file selector
+    let listFiles = document.getElementById('fileSelect');
+    listFiles.onchange = function () {
+        let startBtn = document.getElementById('startButton');
+        let delBtn = document.getElementById('deleteButton');
+        startBtn.disabled = "false";
+        delBtn.disabled = "false";
+    }
+
+    // Get the modal
+    let modal = document.getElementById("myModal");
+    let btn = document.getElementById("myBtn");
+    let span = document.getElementsByClassName("close")[0];
+    btn.onclick = function () {
+        modal.style.display = "block";
+    }
+    span.onclick = function () {
+        modal.style.display = "none";
+    }
+    window.onclick = function (event) {
+        if (event.target === modal) {
+            modal.style.display = "none";
+        }
+    }
+</script>
+
+</html>
