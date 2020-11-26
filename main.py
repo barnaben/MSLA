@@ -98,6 +98,7 @@ def postControl():
 @app.route('/postPower', methods=['GET', 'POST'])
 def postPower():
     if request.method == 'POST':
+        clearJunk()
         if request.form['power'] == 'shutdown':
             os.system("shutdown /s /t 1")
         elif request.form['power'] == 'reboot':
@@ -177,4 +178,4 @@ def clearJunk():
 if __name__ == '__main__':
     clearJunk()
     app.secret_key = 'super secret key'
-    app.run(host='0.0.0.0', debug=True)
+    app.run(host='0.0.0.0',port=5000, debug=True)

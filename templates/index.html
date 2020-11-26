@@ -103,13 +103,16 @@
     </div>
     <div class="container-fluid p-3">
         <div class="row">
-            <div class="img col-sm-8 text-center " >
+            <div class="img col-sm-8 text-center ">
                 <img id="image" class="img-fluid img-responsive" src=""
                      style="max-width: 100%; height: auto; ">
             </div>
             <div class="col-sm-4 text-center">
+                <div class="h3">
+                    <small id="currentfile" class="text-muted"></small>
+                </div>
                 <button id="pauseButton" type="button" class="col-md-6 mt-2 p-2 btn btn-sm btn-warning">
-                    <i id=pauseImg class="fas fa-pause fa-2x " >
+                    <i id=pauseImg class="fas fa-pause fa-2x ">
                         <div id="pauseText">Pause</div>
                     </i>
                 </button>
@@ -144,11 +147,12 @@
     function getStatus() {
         $.getJSON('/getStatus', function (data) {
             console.log(data)
-            $('#progressbar').width(data['percentage'] + '%')
-            $('#progressbar').html(data['percentage'] + '%')
             //$('#image').attr('src', data['img'])
             if (data['printing'] === true) {
                 switchPage('print')
+                $('#progressbar').width(data['percentage'] + '%')
+                $('#progressbar').html(data['percentage'] + '%')
+                $('#currentfile').html("File name: "+data['object'])
             } else if (data['printing'] === false) {
                 switchPage('main')
             }
