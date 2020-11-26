@@ -25,7 +25,7 @@ def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-@app.route('/', methods=['GET', 'POST'])
+@app.route('/')
 def index():
     return render_template("index.html")
 
@@ -58,8 +58,8 @@ def postSelected():
         return jsonify({'response': 'OK'})
 
 
-@app.route('/upload_file', methods=['GET', 'POST'])
-def upload_file():
+@app.route('/uploadFile', methods=['GET', 'POST'])
+def uploadFile():
     if request.method == 'POST':
         if request.files:
             file = request.files["file"]
@@ -67,7 +67,7 @@ def upload_file():
             if file and allowed_file(file.filename):
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
                 #Todo gcode
-            return redirect('/')
+            return jsonify({'response': 'OK'})
 
 
 @app.route('/postDelete', methods=['GET', 'POST'])
@@ -177,5 +177,5 @@ def clearJunk():
 
 if __name__ == '__main__':
     clearJunk()
-    app.secret_key = 'super secret key'
+    app.secret_key = os.urandom(16)
     app.run(host='0.0.0.0',port=5000, debug=True)
