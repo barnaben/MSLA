@@ -3,6 +3,7 @@ from PIL import Image
 from flask import Flask, jsonify, request, redirect, render_template
 from time import sleep
 from zipfile import ZipFile
+from rpi_python_drv8825.stepper import StepperMotor
 import os
 import threading
 
@@ -19,6 +20,18 @@ status = {"printing": False,
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# GPIO setup
+enable_pin = 12
+step_pin = 23
+dir_pin = 24
+mode_pins = (14, 15, 18)
+step_type = '1/32'
+fullstep_delay = .005
+onemicro = 0.0003125
+motor = StepperMotor(enable_pin, step_pin, dir_pin, mode_pins, step_type, fullstep_delay)
+
+act_height = 0.0
 
 
 def allowed_file(filename):
@@ -66,7 +79,7 @@ def uploadFile():
 
             if file and allowed_file(file.filename):
                 file.save(os.path.join(app.config['UPLOAD_FOLDER'], file.filename))
-                #Todo gcode
+                # Todo gcode
             return jsonify({'response': 'OK'})
 
 
@@ -105,6 +118,25 @@ def postPower():
             os.system("shutdown /r /t 1")
 
 
+def moveZ(value):
+    steps = int(abs(value) / onemicro)
+    if value < 0:
+        motor.run(steps, True)
+    else:
+        motor.run(steps, False)
+
+
+def UV(light):
+    if light:
+        print('UV on')
+    else:
+        print('UV off')
+
+
+def homing():
+    print('homing')
+
+
 def filldict(filename):
     dictParam = {}
     file = open(filename)
@@ -122,25 +154,34 @@ def filldict(filename):
 
 
 def printingProcess(filename):
-    # with tempfile.TemporaryDirectory() as print_files:
 
     path = 'static/' + filename[0:-3]
-    file_name = 'files/'+filename
+    file_name = 'files/' + filename
     with ZipFile(file_name, 'r') as zip:
         zip.extractall(path)
 
     parameters = filldict(path + "/run.gcode")
-
+    homing()
     for i in range(1, int(parameters['totalLayer'])):
         if status['pause']:
-            # Todo pause movement
+            prev_height = act_height
+            if parameters['machineZ'] - act_height < 50:
+                act_height += 50
+                moveZ(50)
+            else:
+                moveZ(parameters['machineZ'] - act_height)
+                act_height = parameters['machineZ']
             while status['pause']:
                 print('alszom')
                 sleep(1)
-            # Todo recover after pause
+            moveZ(prev_height - act_height)
         elif status['stop']:
-            # Todo same movement as pause
-            print('megalitottak')
+            if parameters['machineZ'] - act_height < 50:
+                act_height += 50
+                moveZ(50)
+            else:
+                moveZ(parameters['machineZ'] - act_height)
+
             status["object"] = ""
             status["printing"] = False
             status['stop'] = False
@@ -148,19 +189,26 @@ def printingProcess(filename):
             clearJunk()
             break
 
-        print('nyomtatok')
-        status['image'] = path+"/"+str(i) + '.png'
+        status['image'] = path + "/" + str(i) + '.png'
         status['percentage'] = int((i / parameters["totalLayer"]) * 100)
         img = Image.open(path + '/' + str(i) + '.png')
-        print(img.size)
+
         if i > parameters['bottomLayerCount']:
+            moveZ(parameters['bottomLayerLiftHeight'])
+            moveZ(parameters['layerHeight']-parameters['bottomLayerLiftHeight'])
+            act_height = act_height + parameters['layerHeight']
             img.show()
             sleep(int(parameters['normalExposureTime']))
         else:
+            moveZ(parameters['normalLayerLiftHeight'])
+            moveZ(parameters['layerHeight'] - parameters['normalLayerLiftHeight'])
+            moveZ(parameters['layerHeight'])
+            act_height = act_height + parameters['layerHeight']
             img.show()
             sleep(int(parameters['bottomLayerExposureTime']))
 
     clearJunk()
+
 
 def clearJunk():
     folder = 'static'
@@ -178,4 +226,4 @@ def clearJunk():
 if __name__ == '__main__':
     clearJunk()
     app.secret_key = os.urandom(16)
-    app.run(host='0.0.0.0',port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)
