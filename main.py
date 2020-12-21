@@ -1,9 +1,9 @@
 import shutil
-from PIL import Image
+#from PIL import Image
 from flask import Flask, jsonify, request, redirect, render_template
 from time import sleep
 from zipfile import ZipFile
-#from rpi_python_drv8825.stepper import StepperMotor
+from rpi_python_drv8825.stepper import StepperMotor
 import os
 import threading
 import pygame
@@ -31,7 +31,7 @@ mode_pins = (14, 15, 18)
 step_type = '1/32'
 fullstep_delay = .005
 onemicro = 0.0003125
-#motor = StepperMotor(enable_pin, step_pin, dir_pin, mode_pins, step_type, fullstep_delay)
+motor = StepperMotor(enable_pin, step_pin, dir_pin, mode_pins, step_type, fullstep_delay)
 
 
 def allowed_file(filename):
@@ -134,10 +134,10 @@ def moveZ(value):
     steps = int(abs(value) / onemicro)
     if value < 0:
         print("motor")
-        # motor.run(steps, True)
+        motor.run(steps, True)
     else:
         print("motor")
-        # motor.run(steps, False)
+        motor.run(steps, False)
 
 
 def UV(light):
